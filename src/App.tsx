@@ -7,6 +7,7 @@ type Puzzle = {
 function App() {
   const [tetrisBoard, setTetrisBoard] = useState(new Array(10 * 20).fill(0))
   const [currentPuzzle, setCurrentPuzzle] = useState<Puzzle>({fill:[], puzzle:0})
+  const [touchedGround, setTouchGround] = useState(false)
   const [gameStarted, setGameStarted] = useState(false)
   const [step, setStep] = useState(0)
   const linePuzzle:Puzzle ={
@@ -147,16 +148,51 @@ function App() {
   }
   const checkIfPuzzleIsFlat = (puzzle:number[]):number[] => {
     const largestNumberSet:number[] = []
-    const largestNum:number = Math.max(...puzzle)
-    largestNumberSet.push(largestNum)
-    for(let i = 1 ; i <= 4;i++){
-      if(puzzle.includes(largestNum - i)){
-        largestNumberSet.push(largestNum - i)
+    // const largestNum:number = Math.max(...puzzle)
+    // largestNumberSet.push(largestNum)
+    // for(let i = 1 ; i <= 4;i++){
+    //   if(puzzle.includes(largestNum - i)){
+    //     largestNumberSet.push(largestNum - i)
+    //   }
+    // }
+    const remainCheck = puzzle.map(e=>e+10)
+    for(let i = 0 ; i < remainCheck.length ; i++){
+      if(!puzzle.includes(remainCheck[i])){
+        largestNumberSet.push(puzzle[i])
       }
     }
     return largestNumberSet
 
   }
+  const boardChecking = (arr: number[]):boolean => {
+    return arr.every((e)=>e!== 0)
+  }
+  useEffect(()=>{
+    if(gameStarted && touchedGround){
+    
+      if(step !== 0){
+  
+        const needRemoveIndex:number[] = []
+         for(let i = 0 ; i < tetrisBoard.length ; i+=10){
+            if(boardChecking(tetrisBoard.slice(i, i+10))){
+              needRemoveIndex.push(i)
+              for(let x = 1; x < 10 ; x ++){
+                needRemoveIndex.push( i + x)
+               }
+            }
+         }
+
+         if(needRemoveIndex.length!== 0){
+           const remainedBoard = tetrisBoard.filter((_,index)=>!needRemoveIndex.includes(index))
+           const boardGridLeft = remainedBoard.length
+           remainedBoard.unshift(...new Array(200 -boardGridLeft).fill(0))
+          setTetrisBoard(remainedBoard)
+         }
+         setCurrentPuzzle({fill:[], puzzle:0})
+         setTouchGround(false)
+      }
+    }
+  },[touchedGround])
   useEffect(()=>{
     if(gameStarted){
       if(step !== 0){
@@ -186,12 +222,14 @@ function App() {
         }else{
           setCurrentPuzzle((original:Puzzle)=>{
             const newPosition = original.fill.map(e=>e + 10)
-            if(checkIfPuzzleIsFlat(newPosition).every((e)=>e>199)){
-              setCurrentPuzzle({fill:[], puzzle:0})
+            if(checkIfPuzzleIsFlat(newPosition).some((e)=>e>199)){
+              setTouchGround(true)
+
               return original
             }
             if(tetrisBoard.filter((_,index)=>checkIfPuzzleIsFlat(newPosition).includes(index)).some((grid:number)=> grid !== 0)){
-              setCurrentPuzzle({fill:[], puzzle:0})
+              setTouchGround(true)
+
               return original
             }
             return {
@@ -311,12 +349,12 @@ function App() {
         }else if(e.key === 'ArrowDown'){
           setCurrentPuzzle((original:Puzzle)=>{
             const newPosition = original.fill.map(e=>e + 10)
-            if(checkIfPuzzleIsFlat(newPosition).every((e)=>e>199)){
-              setCurrentPuzzle({fill:[], puzzle:0})
+            if(checkIfPuzzleIsFlat(newPosition).some((e)=>e>199)){
+              setTouchGround(true)
               return original
             }
             if(tetrisBoard.filter((_,index)=>checkIfPuzzleIsFlat(newPosition).includes(index)).some((grid:number)=> grid !== 0)){
-              setCurrentPuzzle({fill:[], puzzle:0})
+              setTouchGround(true)
               return original
             }
             return {
