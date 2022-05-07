@@ -37,6 +37,114 @@ function App() {
     fill:[4,13,14,15],
     puzzle:7
   }
+  const turnPuzzle = (direction:string, puzzle:Puzzle):number[] => {
+    let turnArr:number[] = []
+    switch(puzzle.puzzle) { 
+      case 1: { 
+         if(puzzle.fill[0] + 1 === puzzle.fill[1]){
+
+          turnArr = [puzzle.fill[2] - 20, puzzle.fill[2] - 10, puzzle.fill[2], puzzle.fill[2] + 10]
+  
+         }else if(puzzle.fill[0] + 10 === puzzle.fill[1]){
+
+          turnArr= [puzzle.fill[2] + 1, puzzle.fill[2], puzzle.fill[2] - 1, puzzle.fill[2] - 2]
+
+         }else if(puzzle.fill[0] - 1 === puzzle.fill[1]){
+
+          turnArr=  [puzzle.fill[2] + 20, puzzle.fill[2] + 10, puzzle.fill[2], puzzle.fill[2] - 10]
+
+         }else{
+
+          turnArr=  [puzzle.fill[2] -1, puzzle.fill[2], puzzle.fill[2] + 1, puzzle.fill[2] + 2]
+         } 
+         break;
+      } 
+      case 2: { 
+        if(puzzle.fill[0] + 10 === puzzle.fill[1]){
+
+          turnArr = [puzzle.fill[2] - 10 + 1, puzzle.fill[2] - 10, puzzle.fill[2], puzzle.fill[2] + 10]
+  
+         }else if(puzzle.fill[0] - 1 === puzzle.fill[1]){
+
+          turnArr= [puzzle.fill[2] + 10 + 1, puzzle.fill[2] + 1, puzzle.fill[2], puzzle.fill[2] - 1]
+
+         }else if(puzzle.fill[0] - 10 === puzzle.fill[1]){
+
+          turnArr=  [puzzle.fill[2] + 10 - 1, puzzle.fill[2] + 10, puzzle.fill[2], puzzle.fill[2] - 10]
+
+         }else{
+
+          turnArr=  [puzzle.fill[2] -1 -10, puzzle.fill[2] - 1, puzzle.fill[2], puzzle.fill[2] + 1]
+         } 
+         break; 
+      }
+      case 3: { 
+        if(puzzle.fill[0] + 10 === puzzle.fill[3]){
+
+          turnArr = [puzzle.fill[2] + 10 +1, puzzle.fill[2] - 10 , puzzle.fill[2], puzzle.fill[2] + 10]
+  
+         }else if(puzzle.fill[0] - 1 === puzzle.fill[3]){
+
+          turnArr= [puzzle.fill[2] -1  + 10, puzzle.fill[2] + 1, puzzle.fill[2], puzzle.fill[2] - 1]
+
+         }else if(puzzle.fill[0] - 10 === puzzle.fill[3]){
+
+          turnArr=  [puzzle.fill[2] - 10 -1, puzzle.fill[2] - 10, puzzle.fill[2], puzzle.fill[2]+ 10]
+
+         }else{
+
+          turnArr=  [puzzle.fill[2] + 1 - 10, puzzle.fill[2] - 1, puzzle.fill[2], puzzle.fill[2] + 1]
+         }  
+        break; 
+      } 
+      case 4: { 
+        turnArr = puzzle.fill
+        break; 
+      } 
+      case 5: { 
+        if(puzzle.fill[0] + 1 === puzzle.fill[1]){
+          turnArr = [puzzle.fill[3], puzzle.fill[3] + 10 , puzzle.fill[3] - 10 - 1, puzzle.fill[3] - 1]
+         }else {
+          turnArr= [puzzle.fill[0]-10, puzzle.fill[0] - 10 + 1, puzzle.fill[0] - 1, puzzle.fill[0]]
+         }
+        break; 
+      } 
+      case 6: { 
+        if(puzzle.fill[0] + 1 === puzzle.fill[1]){
+          turnArr = [puzzle.fill[2] - 10, puzzle.fill[2], puzzle.fill[2] - 1, puzzle.fill[2] - 1 + 10]
+         }else {
+          turnArr= [puzzle.fill[1]-10 - 1, puzzle.fill[1] - 10, puzzle.fill[1], puzzle.fill[1]+1]
+         }
+        break; 
+      } 
+      case 7: { 
+        if(puzzle.fill[0] + 10 === puzzle.fill[2]){
+
+          turnArr = [puzzle.fill[2] + + 1, puzzle.fill[2] - 10 , puzzle.fill[2], puzzle.fill[2] + 10]
+  
+         }else if(puzzle.fill[0] - 1 === puzzle.fill[2]){
+
+          turnArr= [puzzle.fill[2] + 10, puzzle.fill[2] + 1, puzzle.fill[2], puzzle.fill[2] - 1]
+
+         }else if(puzzle.fill[0] - 10 === puzzle.fill[2]){
+
+          turnArr=  [puzzle.fill[2] -1, puzzle.fill[2] + 10, puzzle.fill[2], puzzle.fill[2] - 10]
+
+         }else{
+
+          turnArr=  [puzzle.fill[2] - 10, puzzle.fill[2] - 1, puzzle.fill[2], puzzle.fill[2] + 1]
+         }  
+        break; 
+      } 
+      default: { 
+        return puzzle.fill
+      } 
+   } 
+   if(checkIfOutOfGrid(turnArr)){
+     return turnArr
+   }
+   return puzzle.fill
+  }
   const checkIfPuzzleIsFlat = (puzzle:number[]):number[] => {
     const largestNumberSet:number[] = []
     const largestNum:number = Math.max(...puzzle)
@@ -98,6 +206,7 @@ function App() {
 
   const drawPuzzle = ():Puzzle =>{
     const allPuzzles = [linePuzzle,LToRightPuzzle,LToLeftPuzzle,squarePuzzle,stairToRightPuzzle,stairToLeftPuzzle,TPuzzle]
+
     return allPuzzles[Math.floor(Math.random() * allPuzzles.length)]
   }
   const fillColor = (num: number) => ['bg-white', 'bg-blue-500', 'bg-red-500', 'bg-green-500', 'bg-yellow-500', 'bg-orange-500', 'bg-purple-500', 'bg-amber-500'][num]
@@ -116,10 +225,107 @@ function App() {
   const restartGame = () => {
 
   }
+  const checkIfOutOfGrid = (arr:number[]):boolean => {
+    const modulized = arr.map((e)=>e % 10)
+    const largestNum = Math.max(...modulized)
+    const smallestNum = Math.min(...modulized)
+    if(4 > (largestNum - smallestNum )){
+      return true
+    }
+    return false
+  }
   return (
     <div className="flex justify-center space-x-4 my-4" onKeyDown={(e)=>{
       if(gameStarted){
-        console.log(e.key)
+        if(e.key === 'ArrowUp'){
+          setTetrisBoard((board:number[])=>{
+            return board.map((each,index:number)=>{
+              if(currentPuzzle.fill.includes(index)){
+                return 0
+              }
+              return each
+            })
+          })
+          setCurrentPuzzle((original:Puzzle)=>{
+            return {
+              ...original,
+              fill: turnPuzzle("right",original) as any
+            }
+          })
+        }else if(e.key === 'ArrowRight'){
+          const newFill = currentPuzzle.fill.map(e=>e+1)
+          const isStraightLine = currentPuzzle.puzzle ===1
+          let canProcess=true
+          if(isStraightLine ){
+            const linePositions = currentPuzzle.fill.map((e)=>e%10)
+            if(linePositions.every((e)=>e === linePositions[0]) && (linePositions[0] + 1) === 10){
+              canProcess = false
+            }
+          }
+          if(checkIfOutOfGrid(newFill)&& canProcess){
+            setTetrisBoard((board:number[])=>{
+              return board.map((each,index:number)=>{
+                if(currentPuzzle.fill.includes(index)){
+                  return 0
+                }
+                return each
+              })
+            })
+            setCurrentPuzzle((original:Puzzle)=>{
+              return {
+                ...original,
+                fill: newFill
+              }
+            })
+
+          }
+
+         
+        }else if (e.key === 'ArrowLeft'){
+          const newFill = currentPuzzle.fill.map(e=>e-1)
+          const isStraightLine = currentPuzzle.puzzle ===1
+          let canProcess=true
+          if(isStraightLine ){
+            const linePositions = currentPuzzle.fill.map((e)=>e%10)
+            if(linePositions.every((e)=>e === linePositions[0]) && (linePositions[0] - 1) < 0){
+              canProcess = false
+            }
+          }
+          if(checkIfOutOfGrid(newFill) && canProcess){
+            setTetrisBoard((board:number[])=>{
+              return board.map((each,index:number)=>{
+                if(currentPuzzle.fill.includes(index)){
+                  return 0
+                }
+                return each
+              })
+            })
+            setCurrentPuzzle((original:Puzzle)=>{
+              return {
+                ...original,
+                fill: newFill
+              }
+            })
+          
+          }
+        }else if(e.key === 'ArrowDown'){
+          setCurrentPuzzle((original:Puzzle)=>{
+            const newPosition = original.fill.map(e=>e + 10)
+            if(checkIfPuzzleIsFlat(newPosition).every((e)=>e>199)){
+              setCurrentPuzzle({fill:[], puzzle:0})
+              return original
+            }
+            if(tetrisBoard.filter((_,index)=>checkIfPuzzleIsFlat(newPosition).includes(index)).some((grid:number)=> grid !== 0)){
+              setCurrentPuzzle({fill:[], puzzle:0})
+              return original
+            }
+            return {
+              ...original,
+              fill: newPosition
+            }
+          })
+        }
+       
 
       }
     }}>
