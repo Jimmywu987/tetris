@@ -7,8 +7,13 @@ type Puzzle = {
   left:number[];
   turn:string[];
 }
+type Grid = {
+  puzzle: number;
+  fixed: boolean;
+}
 function App() {
-  const [tetrisBoard, setTetrisBoard] = useState(new Array(10 * 20).fill(0))
+  const [tetrisBoard, setTetrisBoard] = useState<Grid[]>(new Array(10 * 20).fill({puzzle:0, fixed: false}))
+  // const [tetrisBoard, setTetrisBoard] = useState(new Array(10 * 20).fill(0))
   const [currentPuzzle, setCurrentPuzzle] = useState<Puzzle>({fill:[], puzzle:0, right:[], left:[], turn:[]})
   const [score, setScore] = useState(0)
   const [toClearInterval, setToClearInterval] = useState<any>(null)
@@ -233,14 +238,22 @@ function App() {
     return largestNumberSet
 
   }
-  const boardChecking = (arr: number[]):boolean => {
-    return arr.every((e)=>e!== 0)
+  const boardChecking = (arr: Grid[]):boolean => {
+    return arr.every((e)=>e.puzzle!== 0)
   }
   const cleaningBeforeNewPaint = () => {
-    setTetrisBoard((board:number[])=>{
+    // setTetrisBoard((board:number[])=>{
+    //   return board.map((each,index:number)=>{
+    //     if(currentPuzzle.fill.includes(index)){
+    //       return 0
+    //     }
+    //     return each
+    //   })
+    // })
+    setTetrisBoard((board:Grid[])=>{
       return board.map((each,index:number)=>{
-        if(currentPuzzle.fill.includes(index)){
-          return 0
+        if(!each.fixed){
+          return {puzzle:0, fixed: false}
         }
         return each
       })
@@ -267,9 +280,27 @@ function App() {
            const remainedBoard = tetrisBoard.filter((_,index)=>!needRemoveIndex.includes(index))
            const boardGridLeft = remainedBoard.length
           
-           remainedBoard.unshift(...new Array(200 -boardGridLeft).fill(0))
+           remainedBoard.unshift(...new Array(200 -boardGridLeft).fill({puzzle:0, fixed: false}))
            setScore((e)=>e+=score)
-          setTetrisBoard(remainedBoard)
+          setTetrisBoard(remainedBoard.map((each:Grid)=>{
+            if(each.puzzle !==0){
+              return {
+                puzzle:each.puzzle, fixed: true
+              }
+            }
+            return each
+          }))
+         }else{
+          setTetrisBoard((board:Grid[])=>{
+            return board.map((each:Grid)=>{
+              if(each.puzzle !==0){
+                return {
+                  puzzle:each.puzzle, fixed: true
+                }
+              }
+              return each
+            })
+          })
          }
          setCurrentPuzzle({fill:[], puzzle:0,right:[], left:[],turn:[]})
          setTouchGround(false)
@@ -279,18 +310,29 @@ function App() {
   useEffect(()=>{
     if(gameStarted){
       if(step !== 0){
-        setTetrisBoard((board:number[])=>{
+        // setTetrisBoard((board:number[])=>{
+        //   return board.map((each,index:number)=>{
+        //     if(currentPuzzle.fill.includes(index)){
+        //       return currentPuzzle.puzzle
+        //     }
+        //     else if(currentPuzzle.fill.map((e)=>{
+        //       if(e-10 > 0){
+        //         return e-10
+        //       }
+        //        return e
+        //     }).includes(index)){
+        //       return 0
+        //     }
+        //     return each
+        //   })
+        // })
+        setTetrisBoard((board:Grid[])=>{
           return board.map((each,index:number)=>{
             if(currentPuzzle.fill.includes(index)){
-              return currentPuzzle.puzzle
+              return {puzzle:currentPuzzle.puzzle, fixed:false}
             }
-            else if(currentPuzzle.fill.map((e)=>{
-              if(e-10 > 0){
-                return e-10
-              }
-               return e
-            }).includes(index)){
-              return 0
+            else if(!each.fixed){
+              return {puzzle:0, fixed:false}
             }
             return each
           })
@@ -306,7 +348,7 @@ function App() {
       setTouchGround(true)
       canProcess= false
     }
-    if(tetrisBoard.filter((_,index)=>checkIfPuzzleIsFlat(newPosition).includes(index)).some((grid:number)=> grid !== 0)){
+    if(tetrisBoard.filter((_,index)=>checkIfPuzzleIsFlat(newPosition).includes(index)).some((grid:Grid)=> grid.puzzle !== 0)){
       if(newPosition.some((e)=>(20 <=e && e<=29))){
         setLost(true)
       }else{
@@ -365,7 +407,7 @@ function App() {
 
   }
   const restartGame = () => {
-    setTetrisBoard(new Array(10 * 20).fill(0))
+    setTetrisBoard(new Array(10 * 20).fill({puzzle:0, fixed: false}))
     clearInterval(toClearInterval)
     setPause(false)
     setStep(0)
@@ -385,7 +427,7 @@ function App() {
     return false
   }
   const checkIfGridIsOccupiedWhenTurn = (arr:number[], turnArr:string[]):boolean=>{
-   const existGrid = tetrisBoard.filter((_,index)=>arr.includes(index)).join("")
+   const existGrid = tetrisBoard.filter((_,index)=>arr.includes(index)).map((e)=>e.puzzle).join("")
     return turnArr.includes(existGrid)
   }
   return (
@@ -412,7 +454,7 @@ function App() {
             }
           }
 
-          if(tetrisBoard.filter((_,index)=>newFill.includes(index)).join("") !== currentPuzzle.right.join("")){
+          if(tetrisBoard.filter((_,index)=>newFill.includes(index)).map((e)=>e.puzzle).join("") !== currentPuzzle.right.join("")){
             canProcess = false
           }
 
@@ -439,7 +481,7 @@ function App() {
             }
           }
 
-          if(tetrisBoard.filter((_,index)=>newFill.includes(index)).join("") !== currentPuzzle.left.join("")){
+          if(tetrisBoard.filter((_,index)=>newFill.includes(index)).map((e)=>e.puzzle).join("") !== currentPuzzle.left.join("")){
             canProcess = false
           }
 
@@ -469,8 +511,8 @@ function App() {
       </div>
       <div className="flex justify-center ">
         <div className="grid grid-cols-10 gap-0 ">
-            {tetrisBoard.map((grid:number,index:number)=>{
-              return <div key={index} className={`border border-gray-300 w-10 h-10 ${fillColor(grid)} ${(10 <=index && index<=19) && 'border-b-2 border-b-gray-800' }`}></div>
+            {tetrisBoard.map((grid:Grid,index:number)=>{
+              return <div key={index} className={`border border-gray-300 w-9 h-9 ${fillColor(grid.puzzle)} ${(10 <=index && index<=19) && 'border-b-2 border-b-gray-800' }`}></div>
             })}
         </div>
       </div>
