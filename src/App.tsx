@@ -3,9 +3,6 @@ import { useState, useEffect } from "react";
 type Puzzle = {
   fill:number[];
   puzzle: number;
-  right:number[];
-  left:number[];
-  turn:string[];
 }
 type Grid = {
   puzzle: number;
@@ -13,8 +10,7 @@ type Grid = {
 }
 function App() {
   const [tetrisBoard, setTetrisBoard] = useState<Grid[]>(new Array(10 * 20).fill({puzzle:0, fixed: false}))
-  // const [tetrisBoard, setTetrisBoard] = useState(new Array(10 * 20).fill(0))
-  const [currentPuzzle, setCurrentPuzzle] = useState<Puzzle>({fill:[], puzzle:0, right:[], left:[], turn:[]})
+  const [currentPuzzle, setCurrentPuzzle] = useState<Puzzle>({fill:[], puzzle:0})
   const [score, setScore] = useState(0)
   const [toClearInterval, setToClearInterval] = useState<any>(null)
   const [touchedGround, setTouchGround] = useState(false)
@@ -26,79 +22,56 @@ function App() {
 
   const linePuzzle:Puzzle ={
     fill:[13,14,15,16],
-    puzzle:1,
-    right:[1,1,1,0], left:[0,1,1,1],
-    turn:['0010','0100']
+    puzzle:1
   }
   const LToRightPuzzle:Puzzle ={
     fill:[4,14,15,16],
-    puzzle:2,
-    right:[0,2,2,0], left:[0,0,2,2],
-    turn:['0020','0200']
+    puzzle:2
 
   }
   const LToLeftPuzzle:Puzzle = {
     fill:[6,14,15,16],
-    puzzle:3,
-    right:[0,3,3,0], left:[0,0,3,3],
-    turn:['0030','0300']
+    puzzle:3
+
   }
   const squarePuzzle:Puzzle ={
     fill:[4,5,14,15],
-    puzzle:4,
-    right:[4,0,4,0], left:[0,4,0,4],
-    turn:['4444']
+    puzzle:4
 
   }
   const stairToRightPuzzle:Puzzle = {
     fill:[5,6,14,15],
-    puzzle:5,
-    right:[5,0,5,0], left:[0,5,0,5],
-    turn:['0550','0055']
+    puzzle:5
 
   }
   const stairToLeftPuzzle:Puzzle = {
     fill:[4,5,15,16],
-    puzzle:6,
-    right:[6,0,6,0], left:[0,6,0,6],
-    turn:['6060','0660']
+    puzzle:6
 
   }
   const TPuzzle:Puzzle= {
     fill:[4,13,14,15],
-    puzzle:7,
-    right:[0,7,7,0], left:[0,0,7,7],
-    turn:['7770','0777']
+    puzzle:7
 
   }
 
 
   const turnPuzzle = (puzzle:Puzzle):Puzzle|false => {
     let turnArr:number[] = []
-    let rightArr : number[] = []
-    let leftArr:number[] = []
     switch(puzzle.puzzle) { 
       case 1: { 
          if(puzzle.fill[0] + 1 === puzzle.fill[1]){
 
           turnArr = [puzzle.fill[2] - 20, puzzle.fill[2] - 10, puzzle.fill[2], puzzle.fill[2] + 10]
-          rightArr = [0,0,0,0]
-          leftArr = [0,0,0,0]
          }else if(puzzle.fill[0] + 10 === puzzle.fill[1]){
 
           turnArr= [puzzle.fill[2] + 1, puzzle.fill[2], puzzle.fill[2] - 1, puzzle.fill[2] - 2]
-          rightArr =[1,1,1,0]
-          leftArr = [0,1,1,1]
 
          }else if(puzzle.fill[0] - 1 === puzzle.fill[1]){
 
           turnArr=  [puzzle.fill[2] + 20, puzzle.fill[2] + 10, puzzle.fill[2], puzzle.fill[2] - 10]
-          rightArr = [0,0,0,0]
-          leftArr = [0,0,0,0]
          }else{
           turnArr=  [puzzle.fill[2] -1, puzzle.fill[2], puzzle.fill[2] + 1, puzzle.fill[2] + 2]
-          rightArr =[1,1,1,0]
-          leftArr = [0,1,1,1]
          } 
          break;
       } 
@@ -106,24 +79,16 @@ function App() {
         if(puzzle.fill[0] + 10 === puzzle.fill[1]){
 
           turnArr = [puzzle.fill[2] - 10 + 1, puzzle.fill[2] - 10, puzzle.fill[2], puzzle.fill[2] + 10]
-          rightArr =[2,0,0,0]
-          leftArr = [0,2,0,0]
          }else if(puzzle.fill[0] - 1 === puzzle.fill[1]){
 
           turnArr= [puzzle.fill[2] + 10 + 1, puzzle.fill[2] + 1, puzzle.fill[2], puzzle.fill[2] - 1]
-          rightArr = [2,2,0,0]
-          leftArr = [0,2,2,0]
          }else if(puzzle.fill[0] - 10 === puzzle.fill[1]){
 
           turnArr=  [puzzle.fill[2] + 10 - 1, puzzle.fill[2] + 10, puzzle.fill[2], puzzle.fill[2] - 10]
-          rightArr =[0,0,2,0]
-          leftArr = [0,0,0,2]
 
          }else{
 
           turnArr=  [puzzle.fill[2] -1 -10, puzzle.fill[2] - 1, puzzle.fill[2], puzzle.fill[2] + 1]
-          rightArr = [0,2,2,0]
-          leftArr = [0,0,2,2]
          } 
          break; 
       }
@@ -131,56 +96,38 @@ function App() {
         if(puzzle.fill[0] + 10 === puzzle.fill[3]){
 
           turnArr = [puzzle.fill[2] + 10 +1, puzzle.fill[2] - 10 , puzzle.fill[2], puzzle.fill[2] + 10]
-          rightArr = [0,0,3,0]
-          leftArr = [0,0,0,3]
   
          }else if(puzzle.fill[0] - 1 === puzzle.fill[3]){
 
           turnArr= [puzzle.fill[2] -1  + 10, puzzle.fill[2] + 1, puzzle.fill[2], puzzle.fill[2] - 1]
-          rightArr = [3,3,0,0]
-          leftArr = [0,3,3,0]
 
          }else if(puzzle.fill[0] - 10 === puzzle.fill[3]){
 
           turnArr=  [puzzle.fill[2] - 10 -1, puzzle.fill[2] - 10, puzzle.fill[2], puzzle.fill[2]+ 10]
-          rightArr = [3,0,0,0]
-          leftArr = [0,3,0,0]
 
          }else{
 
           turnArr=  [puzzle.fill[2] + 1 - 10, puzzle.fill[2] - 1, puzzle.fill[2], puzzle.fill[2] + 1]
-          rightArr =[0,3,3,0]
-          leftArr = [0,0,3,3]
          }  
         break; 
       } 
       case 4: { 
         turnArr = puzzle.fill
-        rightArr = [4,0,4,0]
-          leftArr = [0,4,0,4]
         break; 
       } 
       case 5: { 
         if(puzzle.fill[0] + 1 === puzzle.fill[1]){
           turnArr = [puzzle.fill[3], puzzle.fill[3] + 10 , puzzle.fill[3] - 10 - 1, puzzle.fill[3] - 1]
-          rightArr = [0,5,0,0]
-          leftArr = [0,0,5,0]
          }else {
           turnArr= [puzzle.fill[0]-10, puzzle.fill[0] - 10 + 1, puzzle.fill[0] - 1, puzzle.fill[0]]
-          rightArr = [5,0,5,0]
-          leftArr = [0,5,0,5]
          }
         break; 
       } 
       case 6: { 
         if(puzzle.fill[0] + 1 === puzzle.fill[1]){
           turnArr = [puzzle.fill[2] - 10, puzzle.fill[2], puzzle.fill[2] - 1, puzzle.fill[2] - 1 + 10]
-          rightArr = [0,6,0,0]
-          leftArr = [0,0,6,0]
          }else {
           turnArr= [puzzle.fill[1]-10 - 1, puzzle.fill[1] - 10, puzzle.fill[1], puzzle.fill[1]+1]
-          rightArr = [6,0,6,0]
-          leftArr = [0,6,0,6]
          }
         break; 
       } 
@@ -188,26 +135,17 @@ function App() {
         if(puzzle.fill[0] + 10 === puzzle.fill[2]){
 
           turnArr = [puzzle.fill[2] + + 1, puzzle.fill[2] - 10 , puzzle.fill[2], puzzle.fill[2] + 10]
-          rightArr = [0,7,0,0]
-          leftArr = [0,0,7,0]
   
          }else if(puzzle.fill[0] - 1 === puzzle.fill[2]){
 
           turnArr= [puzzle.fill[2] + 10, puzzle.fill[2] + 1, puzzle.fill[2], puzzle.fill[2] - 1]
-          rightArr = [7,7,0,0]
-          leftArr = [0,7,7,0]
 
          }else if(puzzle.fill[0] - 10 === puzzle.fill[2]){
 
           turnArr=  [puzzle.fill[2] -1, puzzle.fill[2] + 10, puzzle.fill[2], puzzle.fill[2] - 10]
-          rightArr = [0,7,0,0]
-          leftArr = [0,0,7,0]
 
          }else{
-
           turnArr=  [puzzle.fill[2] - 10, puzzle.fill[2] - 1, puzzle.fill[2], puzzle.fill[2] + 1]
-          rightArr = [0,7,7,0]
-          leftArr = [0,0,7,7]
          }  
         break; 
       } 
@@ -215,13 +153,10 @@ function App() {
         return false
       } 
    } 
-   if(checkIfOutOfGrid(turnArr) && checkIfGridIsOccupiedWhenTurn(turnArr, puzzle.turn)){
+   if(checkIfOutOfGrid(turnArr) && checkIfGridIsOccupiedWhenTurn(turnArr)){
      return {
        fill: turnArr,
-       puzzle: puzzle.puzzle,
-       left:leftArr,
-       right:rightArr,
-       turn:puzzle.turn
+       puzzle: puzzle.puzzle
      }
    }
    return false
@@ -242,16 +177,9 @@ function App() {
     return arr.every((e)=>e.puzzle!== 0)
   }
   const cleaningBeforeNewPaint = () => {
-    // setTetrisBoard((board:number[])=>{
-    //   return board.map((each,index:number)=>{
-    //     if(currentPuzzle.fill.includes(index)){
-    //       return 0
-    //     }
-    //     return each
-    //   })
-    // })
+
     setTetrisBoard((board:Grid[])=>{
-      return board.map((each,index:number)=>{
+      return board.map((each)=>{
         if(!each.fixed){
           return {puzzle:0, fixed: false}
         }
@@ -302,7 +230,7 @@ function App() {
             })
           })
          }
-         setCurrentPuzzle({fill:[], puzzle:0,right:[], left:[],turn:[]})
+         setCurrentPuzzle({fill:[], puzzle:0})
          setTouchGround(false)
       }
     }
@@ -310,22 +238,7 @@ function App() {
   useEffect(()=>{
     if(gameStarted){
       if(step !== 0){
-        // setTetrisBoard((board:number[])=>{
-        //   return board.map((each,index:number)=>{
-        //     if(currentPuzzle.fill.includes(index)){
-        //       return currentPuzzle.puzzle
-        //     }
-        //     else if(currentPuzzle.fill.map((e)=>{
-        //       if(e-10 > 0){
-        //         return e-10
-        //       }
-        //        return e
-        //     }).includes(index)){
-        //       return 0
-        //     }
-        //     return each
-        //   })
-        // })
+  
         setTetrisBoard((board:Grid[])=>{
           return board.map((each,index:number)=>{
             if(currentPuzzle.fill.includes(index)){
@@ -413,7 +326,7 @@ function App() {
     setStep(0)
     setLost(false)
     setScore(0)
-    setCurrentPuzzle({fill:[], puzzle:0, left:[], right:[],turn:[]})
+    setCurrentPuzzle({fill:[], puzzle:0})
     startGame()
   }
   const checkIfOutOfGrid = (arr:number[]):boolean => {
@@ -426,9 +339,8 @@ function App() {
     }
     return false
   }
-  const checkIfGridIsOccupiedWhenTurn = (arr:number[], turnArr:string[]):boolean=>{
-   const existGrid = tetrisBoard.filter((_,index)=>arr.includes(index)).map((e)=>e.puzzle).join("")
-    return turnArr.includes(existGrid)
+  const checkIfGridIsOccupiedWhenTurn = (arr:number[]):boolean=>{
+    return tetrisBoard.filter((_,index)=>arr.includes(index)).map((e)=>e.fixed).every((e:boolean)=>!e)  
   }
   return (
     <div className="flex justify-center space-x-4 my-4" onKeyDown={(e)=>{
@@ -454,7 +366,7 @@ function App() {
             }
           }
 
-          if(tetrisBoard.filter((_,index)=>newFill.includes(index)).map((e)=>e.puzzle).join("") !== currentPuzzle.right.join("")){
+          if(!tetrisBoard.filter((_,index)=>newFill.includes(index)).map((e)=>e.fixed).every((e)=>!e)){
             canProcess = false
           }
 
@@ -481,7 +393,7 @@ function App() {
             }
           }
 
-          if(tetrisBoard.filter((_,index)=>newFill.includes(index)).map((e)=>e.puzzle).join("") !== currentPuzzle.left.join("")){
+          if(!tetrisBoard.filter((_,index)=>newFill.includes(index)).map((e)=>e.fixed).every((e)=>!e)){
             canProcess = false
           }
 
