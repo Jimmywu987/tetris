@@ -1,1 +1,1 @@
-This Tetris is built with React and tailwind css.
+This Tetris is built with React and tailwind css, and the mobile is not yet done.
