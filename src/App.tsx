@@ -1,22 +1,30 @@
-import { useState, useEffect,useRef } from "react";
+import { useState, useEffect,useRef, useMemo } from "react";
 import { Puzzle, Grid } from "./utils/type";
 import { Puzzles } from "./utils/puzzles";
 
 
 
-function App() {
+const App = () =>{
   const ref = useRef<any>(null)
   const [tetrisBoard, setTetrisBoard] = useState<Grid[]>(new Array(10 * 20).fill({puzzle:0, fixed: false}))
   const [currentPuzzle, setCurrentPuzzle] = useState<Puzzle>({fill:[], puzzle:0})
-  const [score, setScore] = useState(0)
+  const [storePuzzle, setStorePuzzle] = useState<Puzzle[]>([])
+  const [score, setScore] = useState<number>(0)
   const [toClearInterval, setToClearInterval] = useState<any>(null)
-  const [touchedGround, setTouchGround] = useState(false)
-  const [gameStarted, setGameStarted] = useState(false)
-  const [lost, setLost] = useState(false)
-  const [pause, setPause] = useState(false)
-  const [step, setStep] = useState(0)
+  const [touchedGround, setTouchGround] = useState<boolean>(false)
+  const [gameStarted, setGameStarted] = useState<boolean>(false)
+  const [lost, setLost] = useState<boolean>(false)
+  const [pause, setPause] = useState<boolean>(false)
+  const [step, setStep] = useState<number>(0)
 
-
+  const displayNextPuzzle = useMemo(()=>{
+    return new Array(24).fill(0).map((_, index)=>{
+      if(storePuzzle.length !== 0 && storePuzzle[0].fill.map((e)=>{ if(e > 10){ return e } return e + 4 }).includes(index)){
+        return storePuzzle[0].puzzle
+      }
+      return 0
+    })
+  },[storePuzzle])
   const turnPuzzle = (puzzle:Puzzle):Puzzle|false => {
     let turnArr:number[] = []
     switch(puzzle.puzzle) { 
@@ -196,6 +204,7 @@ function App() {
       }
     }
   },[touchedGround])
+
   useEffect(()=>{
     if(gameStarted){
       if(step !== 0){
@@ -214,6 +223,7 @@ function App() {
     }
 
   },[currentPuzzle])
+
   const puzzleDownward = () => {
     let canProcess = true
     const newPosition = currentPuzzle.fill.map(e=>e + 10)
@@ -259,9 +269,15 @@ function App() {
 
   }
   useEffect(()=>{
-    if(step > 0 && !pause){
+    if(step > 0 && !pause && !lost){
         if(currentPuzzle.puzzle === 0){
-          setCurrentPuzzle(drawPuzzle())
+          
+          setCurrentPuzzle(storePuzzle.length === 0 ? drawPuzzle() : storePuzzle[0])
+          setStorePuzzle((originPuzzleArr)=>{
+            originPuzzleArr.shift()
+            originPuzzleArr.push(drawPuzzle())
+            return [...originPuzzleArr]
+          })
         }else{
           puzzleDownward()
          
@@ -271,12 +287,10 @@ function App() {
   },[step])
 
 
-  const drawPuzzle = ():Puzzle =>{
-    return Puzzles[Math.floor(Math.random() * Puzzles.length)]
-  }
+  const drawPuzzle = ():Puzzle =>Puzzles[Math.floor(Math.random() * Puzzles.length)]
   const fillColor = (num: number) => ['bg-white', 'bg-blue-500', 'bg-red-500', 'bg-green-500', 'bg-yellow-500', 'bg-orange-500', 'bg-purple-500', 'bg-amber-500'][num]
-  const startGame = () => {
-    if(!gameStarted){
+  const startGame = (gameRestart = false) => {
+    if(!gameStarted || gameRestart){
       setGameStarted(true)
       const time = setInterval(()=>{
         if(!pause){
@@ -298,22 +312,47 @@ function App() {
     setStep(0)
     setLost(false)
     setScore(0)
+    setStorePuzzle([])
     setCurrentPuzzle({fill:[], puzzle:0})
-    startGame()
+    startGame(true)
   }
   const checkIfOutOfGrid = (arr:number[]):boolean => {
     const modulized = arr.map((e)=>e % 10)
     const largestNum = Math.max(...modulized)
     const smallestNum = Math.min(...modulized)
-    return 4 > (largestNum - smallestNum ) 
+    return 4 > (largestNum - smallestNum ) && smallestNum - 1 >=-1
   }
   const checkIfGridIsOccupiedWhenTurn = (arr:number[]):boolean=>{
-    return tetrisBoard.filter((_,index)=>arr.includes(index)).map((e)=>e.fixed).every((e:boolean)=>!e)  
+    return tetrisBoard.filter((_,index)=>arr.includes(index)).map((e)=>e.fixed).every((e:boolean)=>!e)
+  }
+  const moveHorizontally = (move:number) => {
+    const newFill = currentPuzzle.fill.map(e=>e+move)
+      const isStraightLine = currentPuzzle.puzzle ===1
+      let canProcess=true
+      if(isStraightLine ){
+        const linePositions = currentPuzzle.fill.map((e)=>e%10)
+        if(linePositions.every((e)=>e === linePositions[0]) && (linePositions[0] + move) === 10){
+          canProcess = false
+        }
+      }
+      if(!tetrisBoard.filter((_,index)=>newFill.includes(index)).map((e)=>e.fixed).every((e)=>!e)){
+        canProcess = false
+      }
+      if(checkIfOutOfGrid(newFill)&& canProcess){
+        cleaningBeforeNewPaint()
+        setCurrentPuzzle((original:Puzzle)=>{
+          return {
+            ...original,
+            fill: newFill
+          }
+        })
+      }
+
   }
   const boardKeyDownControl = (element:React.KeyboardEvent<HTMLDivElement>) => {
-    if(gameStarted && !pause){
+    if(gameStarted && !pause && !lost){
 
-      if(element.key === 'ArrowUp'){
+      if(['ArrowUp', '8', 'w'].includes(element.key)){
         const updatePuzzle = turnPuzzle(currentPuzzle)
         if(updatePuzzle){
           cleaningBeforeNewPaint()
@@ -322,65 +361,15 @@ function App() {
           })
         }
        
-      }else if(element.key === 'ArrowRight'){
-        const newFill = currentPuzzle.fill.map(e=>e+1)
-        const isStraightLine = currentPuzzle.puzzle ===1
-        let canProcess=true
-        if(isStraightLine ){
-          const linePositions = currentPuzzle.fill.map((e)=>e%10)
-          if(linePositions.every((e)=>e === linePositions[0]) && (linePositions[0] + 1) === 10){
-            canProcess = false
-          }
-        }
-
-        if(!tetrisBoard.filter((_,index)=>newFill.includes(index)).map((e)=>e.fixed).every((e)=>!e)){
-          canProcess = false
-        }
-
-        if(checkIfOutOfGrid(newFill)&& canProcess){
-          cleaningBeforeNewPaint()
-          setCurrentPuzzle((original:Puzzle)=>{
-            return {
-              ...original,
-              fill: newFill
-            }
-          })
-
-        }
-
-       
-      }else if (element.key === 'ArrowLeft'){
-        const newFill = currentPuzzle.fill.map(e=>e-1)
-        const isStraightLine = currentPuzzle.puzzle ===1
-        let canProcess=true
-        if(isStraightLine ){
-          const linePositions = currentPuzzle.fill.map((e)=>e%10)
-          if(linePositions.every((e)=>e === linePositions[0]) && (linePositions[0] - 1) < 0){
-            canProcess = false
-          }
-        }
-
-        if(!tetrisBoard.filter((_,index)=>newFill.includes(index)).map((e)=>e.fixed).every((e)=>!e)){
-          canProcess = false
-        }
-
-        if(checkIfOutOfGrid(newFill) && canProcess){
-          cleaningBeforeNewPaint()
-          setCurrentPuzzle((original:Puzzle)=>{
-            return {
-              ...original,
-              fill: newFill
-            }
-          })
-        
-        }
-      }else if(element.key === 'ArrowDown'){
+      }else if(['ArrowRight','6' ,'d'].includes(element.key)){
+        moveHorizontally(1)       
+      }else if (['ArrowLeft','4' , 'a'].includes(element.key)){
+        moveHorizontally(-1)  
+      }else if(['ArrowDown' ,'2','s'].includes(element.key)){
         puzzleDownward()
-      }else if (element.key === '0'){
+      }else if (['0' ,'x','5'].includes(element.key)){
         PushPuzzleToBottom()
       }
-     
-
     }
   }
   return (
@@ -394,13 +383,28 @@ function App() {
         <button className={`border px-4 py-1 rounded ${pause && "bg-gray-500 text-white"}`} onClick={()=>pauseGame()}>Pause</button>
         <button className="border px-4 py-1 rounded" onClick={()=>restartGame()}>Restart</button>
         <p className="border px-3 py-1 flex justify-center">{score}</p>
-        {lost && <p>Lost</p>}
+        {lost && <p className="text-2xl text-center font-bold text-red-700">Lost</p>}
       </div>
       <div className="flex justify-center">
         <div className="grid grid-cols-10 gap-0 ">
             {tetrisBoard.map((grid:Grid,index:number)=>{
               return <div key={index} className={`border border-gray-300 w-9 h-9 ${fillColor(grid.puzzle)} ${(10 <=index && index<=19) && 'border-b-2 border-b-gray-800' }`}></div>
             })}
+        </div>
+      </div>
+      <div className="flex flex-col items-start">
+        <div className="grid grid-cols-6 ">
+            {displayNextPuzzle.map((grid:number,index:number)=>{
+                return <div key={index} className={`border border-gray-300 w-9 h-9 ${fillColor(grid)} `}></div>
+              })}
+        </div>
+        <div className="space-y-2 mt-3">
+          <p className="ml-2 text-2xl font-bold">Control:</p>
+          <p><span className="font-bold text-lg">w:</span> turn the puzzle clockwise</p>
+          <p><span className="font-bold text-lg">a:</span> move the puzzle to the left</p>
+          <p><span className="font-bold text-lg">d:</span> move the puzzle to the right</p>
+          <p><span className="font-bold text-lg">s:</span> move the puzzle downward</p>
+          <p><span className="font-bold text-lg">x:</span> push the puzzle to the bottom</p>
         </div>
       </div>
     </div>
