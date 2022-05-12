@@ -417,7 +417,7 @@ const App = () =>{
                 return <div key={index} className={`border border-gray-300 w-5 h-5 md:w-9 md:h-9 ${fillColor(grid)} `}></div>
               })}
         </div>
-        <div className="space-y-2 md:mt-3 ">
+        <div className="space-y-2 md:mt-3 whitespace-nowrap">
           <p className="md:ml-2 md:text-2xl font-bold">Control:</p>
           <p><span className="font-bold text-lg">w:</span> turn the puzzle clockwise</p>
           <p><span className="font-bold text-lg">a:</span> move the puzzle to the left</p>
