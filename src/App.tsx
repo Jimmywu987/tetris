@@ -336,7 +336,7 @@ const App = () =>{
       let canProcess=true
       if(isStraightLine ){
         const linePositions = currentPuzzle.fill.map((e)=>e%10)
-        if(linePositions.every((e)=>e === linePositions[0]) && (linePositions[0] + move) === 10){
+        if(linePositions.every((e)=>e === linePositions[0]) && ((linePositions[0] + move) === 10 || (linePositions[0] + move) === -1)){
           canProcess = false
         }
       }
