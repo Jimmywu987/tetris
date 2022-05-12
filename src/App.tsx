@@ -225,47 +225,51 @@ const App = () =>{
   },[currentPuzzle])
 
   const puzzleDownward = () => {
-    let canProcess = true
-    const newPosition = currentPuzzle.fill.map(e=>e + 10)
-    if(checkIfPuzzleIsFlat(newPosition).some((e)=>e>199)){
-      setTouchGround(true)
-      canProcess= false
-    }
-    if(tetrisBoard.filter((_,index)=>checkIfPuzzleIsFlat(newPosition).includes(index)).some((grid:Grid)=> grid.fixed)){
-      if(newPosition.some((e)=>(20 <=e && e<=29))){
-        setLost(true)
-      }else{
+    if(gameStarted && !pause && !lost){
+      let canProcess = true
+      const newPosition = currentPuzzle.fill.map(e=>e + 10)
+      if(checkIfPuzzleIsFlat(newPosition).some((e)=>e>199)){
         setTouchGround(true)
-       
+        canProcess= false
       }
-      canProcess= false
-    }
-    if(canProcess){
-      cleaningBeforeNewPaint()
-      setCurrentPuzzle((original:Puzzle)=>{
-        return {
-          ...original,
-          fill: newPosition
+      if(tetrisBoard.filter((_,index)=>checkIfPuzzleIsFlat(newPosition).includes(index)).some((grid:Grid)=> grid.fixed)){
+        if(newPosition.some((e)=>(20 <=e && e<=29))){
+          setLost(true)
+        }else{
+          setTouchGround(true)
+        
         }
-      })
-    }
-
-  }
-  const PushPuzzleToBottom = () => {
-    for(let i = 10 ; i <= 200 ; i+=10){
-      const newPosition = currentPuzzle.fill.map(e=>e + i)
-      if(checkIfPuzzleIsFlat(newPosition).some((e)=>e>199) || tetrisBoard.filter((_,index)=>checkIfPuzzleIsFlat(newPosition).includes(index)).some((grid:Grid)=> grid.fixed)){
+        canProcess= false
+      }
+      if(canProcess){
         cleaningBeforeNewPaint()
         setCurrentPuzzle((original:Puzzle)=>{
           return {
             ...original,
-            fill: newPosition.map(e=>e - 10)
+            fill: newPosition
           }
         })
-        setStep((e)=>e+1)
-        break
+    }
+    }
+  }
+  const pushPuzzleToBottom = () => {
+    if(gameStarted && !pause && !lost){
+      for(let i = 10 ; i <= 200 ; i+=10){
+        const newPosition = currentPuzzle.fill.map(e=>e + i)
+        if(checkIfPuzzleIsFlat(newPosition).some((e)=>e>199) || tetrisBoard.filter((_,index)=>checkIfPuzzleIsFlat(newPosition).includes(index)).some((grid:Grid)=> grid.fixed)){
+          cleaningBeforeNewPaint()
+          setCurrentPuzzle((original:Puzzle)=>{
+            return {
+              ...original,
+              fill: newPosition.map(e=>e - 10)
+            }
+          })
+          setStep((e)=>e+1)
+          break
+        }
       }
     }
+    
 
   }
   useEffect(()=>{
@@ -326,7 +330,8 @@ const App = () =>{
     return tetrisBoard.filter((_,index)=>arr.includes(index)).map((e)=>e.fixed).every((e:boolean)=>!e)
   }
   const moveHorizontally = (move:number) => {
-    const newFill = currentPuzzle.fill.map(e=>e+move)
+    if(gameStarted && !pause && !lost){
+      const newFill = currentPuzzle.fill.map(e=>e+move)
       const isStraightLine = currentPuzzle.puzzle ===1
       let canProcess=true
       if(isStraightLine ){
@@ -347,20 +352,27 @@ const App = () =>{
           }
         })
       }
+    }
+     
 
   }
-  const boardKeyDownControl = (element:React.KeyboardEvent<HTMLDivElement>) => {
+  const turnPuzzleClockwise = () => {
     if(gameStarted && !pause && !lost){
+      const updatePuzzle = turnPuzzle(currentPuzzle)
+      if(updatePuzzle){
+        cleaningBeforeNewPaint()
+        setCurrentPuzzle(()=>{
+          return updatePuzzle
+        })
+      }
+    }
+  
+  }
+  const boardKeyDownControl = (element:React.KeyboardEvent<HTMLDivElement>) => {
 
       if(['ArrowUp', '8', 'w'].includes(element.key)){
-        const updatePuzzle = turnPuzzle(currentPuzzle)
-        if(updatePuzzle){
-          cleaningBeforeNewPaint()
-          setCurrentPuzzle(()=>{
-            return updatePuzzle
-          })
-        }
-       
+        turnPuzzleClockwise()
+
       }else if(['ArrowRight','6' ,'d'].includes(element.key)){
         moveHorizontally(1)       
       }else if (['ArrowLeft','4' , 'a'].includes(element.key)){
@@ -368,43 +380,55 @@ const App = () =>{
       }else if(['ArrowDown' ,'2','s'].includes(element.key)){
         puzzleDownward()
       }else if (['0' ,'x','5'].includes(element.key)){
-        PushPuzzleToBottom()
+        pushPuzzleToBottom()
       }
-    }
+
   }
   return (
-    <div className="flex justify-center space-x-4 my-4" onKeyDown={(e)=>boardKeyDownControl(e)} onClick={()=>{
+    <div className="flex flex-col md:flex-row justify-center md:space-x-4 my-4" onKeyDown={(e)=>boardKeyDownControl(e)} onClick={()=>{
       if(ref.current){
         ref.current.focus();
       }
     }}>
-      <div className="flex flex-col space-y-2">
-        <button className={`border px-4 py-1 rounded ${gameStarted && "bg-gray-500 text-white"}`} ref={ref} onClick={()=>startGame()}>Start</button>
-        <button className={`border px-4 py-1 rounded ${pause && "bg-gray-500 text-white"}`} onClick={()=>pauseGame()}>Pause</button>
-        <button className="border px-4 py-1 rounded" onClick={()=>restartGame()}>Restart</button>
-        <p className="border px-3 py-1 flex justify-center">{score}</p>
-        {lost && <p className="text-2xl text-center font-bold text-red-700">Lost</p>}
-      </div>
-      <div className="flex justify-center">
-        <div className="grid grid-cols-10 gap-0 ">
-            {tetrisBoard.map((grid:Grid,index:number)=>{
-              return <div key={index} className={`border border-gray-300 w-9 h-9 ${fillColor(grid.puzzle)} ${(10 <=index && index<=19) && 'border-b-2 border-b-gray-800' }`}></div>
-            })}
-        </div>
-      </div>
-      <div className="flex flex-col items-start">
-        <div className="grid grid-cols-6 ">
+      <div className="flex justify-around">
+        <div className="flex flex-col space-y-2 md:mr-3">
+          <button className={`border px-4 py-1 rounded ${gameStarted && "bg-gray-500 text-white"}`} ref={ref} onClick={()=>startGame()}>Start</button>
+          <button className={`border px-4 py-1 rounded ${pause && "bg-gray-500 text-white"}`} onClick={()=>pauseGame()}>Pause</button>
+          <button className="border px-4 py-1 rounded" onClick={()=>restartGame()}>Restart</button>
+          <p className="border px-3 py-1 flex justify-center">{score}</p>
+          {lost && <p className="text-2xl text-center font-bold text-red-700">Lost</p>}
+          <div className="grid grid-cols-6 md:hidden">
             {displayNextPuzzle.map((grid:number,index:number)=>{
-                return <div key={index} className={`border border-gray-300 w-9 h-9 ${fillColor(grid)} `}></div>
+                return <div key={index} className={`border border-gray-300 w-5 h-5 md:w-9 md:h-9 ${fillColor(grid)} `}></div>
               })}
         </div>
-        <div className="space-y-2 mt-3">
-          <p className="ml-2 text-2xl font-bold">Control:</p>
+        </div>
+        <div className="flex justify-center">
+          <div className="grid grid-cols-10 gap-0 ">
+              {tetrisBoard.map((grid:Grid,index:number)=>{
+                return <div key={index} className={`border border-gray-300 w-6 h-6 md:w-9 md:h-9 ${fillColor(grid.puzzle)} ${(10 <=index && index<=19) && 'border-b-2 border-b-gray-800' }`}></div>
+              })}
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-col-reverse md:flex-col items-start mx-2">
+        <div className="md:grid grid-cols-6 hidden ">
+            {displayNextPuzzle.map((grid:number,index:number)=>{
+                return <div key={index} className={`border border-gray-300 w-5 h-5 md:w-9 md:h-9 ${fillColor(grid)} `}></div>
+              })}
+        </div>
+        <div className="space-y-2 md:mt-3 ">
+          <p className="md:ml-2 md:text-2xl font-bold">Control:</p>
           <p><span className="font-bold text-lg">w:</span> turn the puzzle clockwise</p>
           <p><span className="font-bold text-lg">a:</span> move the puzzle to the left</p>
           <p><span className="font-bold text-lg">d:</span> move the puzzle to the right</p>
           <p><span className="font-bold text-lg">s:</span> move the puzzle downward</p>
           <p><span className="font-bold text-lg">x:</span> push the puzzle to the bottom</p>
+        </div>
+        <div className="flex flex-col items-center w-full space-y-4 my-6 border py-4">
+          <button className="px-4 py-1 border-2 text-3xl focus:bg-gray-100 rounded-lg" onClick={turnPuzzleClockwise}>w</button>
+          <div className="space-x-4"><button className="px-5 py-1 border-2 text-3xl focus:bg-gray-100 rounded-lg " onClick={()=>moveHorizontally(-1)}>a</button><button className="rounded-lg px-5 py-1 border-2 text-3xl focus:bg-gray-100" onClick={()=>puzzleDownward()}>s</button><button className="px-5 py-1 border-2 text-3xl focus:bg-gray-100 rounded-lg" onClick={()=>  moveHorizontally(1)}>d</button></div>
+          <button className="px-5 py-1 border-2 text-3xl focus:bg-gray-100 rounded-lg" onClick={()=>pushPuzzleToBottom()}>x</button>
         </div>
       </div>
     </div>
