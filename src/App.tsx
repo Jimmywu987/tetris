@@ -1,11 +1,13 @@
 import { ControlButton } from "components/ControlButton";
 import { InstructionManual } from "components/InstructionManual";
+import { NextPuzzleDisplay } from "components/NextPuzzleDisplay";
 import { EMPTY_BOARD } from "constants/emptyBoard";
-import { useState, useEffect, useRef, useMemo, KeyboardEvent } from "react";
+import { GRID_COLORS } from "constants/gridColors";
+import { useState, useEffect, useRef, KeyboardEvent } from "react";
 import { Puzzle, Grid } from "types";
 import { cn } from "utils/cn";
+import { drawPuzzle } from "utils/drawPuzzle";
 
-import { Puzzles } from "utils/puzzles";
 import { turnPuzzle } from "utils/turnPuzzle";
 
 const App = () => {
@@ -26,29 +28,10 @@ const App = () => {
   const [pause, setPause] = useState<boolean>(false);
   const [step, setStep] = useState<number>(0);
 
-  const displayNextPuzzle = useMemo(() => {
-    return new Array(24).fill(0).map((_, index) => {
-      if (
-        storePuzzle.length !== 0 &&
-        storePuzzle[0].shape
-          .map((e) => {
-            if (e > 10) {
-              return e;
-            }
-            return e + 4;
-          })
-          .includes(index)
-      ) {
-        return storePuzzle[0].puzzleNum;
-      }
-      return 0;
-    });
-  }, [storePuzzle]);
-
   const checkIfPuzzleIsFlat = (puzzle: number[]): number[] => {
     const largestNumberSet: number[] = [];
 
-    const remainCheck = puzzle.map((e) => e + 10);
+    const remainCheck = puzzle.map((position) => position + 10);
     for (let i = 0; i < remainCheck.length; i++) {
       if (!puzzle.includes(remainCheck[i])) {
         largestNumberSet.push(puzzle[i]);
@@ -208,30 +191,17 @@ const App = () => {
         setCurrentPuzzle(
           storePuzzle.length === 0 ? drawPuzzle() : storePuzzle[0]
         );
-        setStorePuzzle((originPuzzleArr) => {
-          originPuzzleArr.shift();
-          originPuzzleArr.push(drawPuzzle());
-          return [...originPuzzleArr];
+        setStorePuzzle((prePuzzle) => {
+          prePuzzle.shift();
+          prePuzzle.push(drawPuzzle());
+          return [...prePuzzle];
         });
-      } else {
-        puzzleDownward();
+        return;
       }
+      puzzleDownward();
     }
   }, [step]);
 
-  const drawPuzzle = (): Puzzle =>
-    Puzzles[Math.floor(Math.random() * Puzzles.length)];
-  const fillColor = (num: number) =>
-    [
-      "bg-white",
-      "bg-blue-500",
-      "bg-red-500",
-      "bg-green-500",
-      "bg-yellow-500",
-      "bg-orange-500",
-      "bg-purple-500",
-      "bg-amber-500",
-    ][num];
   const startGame = (gameRestart = false) => {
     if (!gameStarted || gameRestart) {
       setGameStarted(true);
@@ -378,28 +348,20 @@ const App = () => {
           {lost && (
             <p className="text-2xl text-center font-bold text-red-700">Lost</p>
           )}
-          <div className="grid grid-cols-6 md:hidden">
-            {displayNextPuzzle.map((grid, index) => {
-              return (
-                <div
-                  key={index}
-                  className={cn(
-                    "border border-gray-300 w-5 h-5 md:w-9 md:h-9",
-                    fillColor(grid)
-                  )}
-                />
-              );
-            })}
-          </div>
+          <NextPuzzleDisplay
+            storePuzzle={storePuzzle}
+            className="grid grid-cols-6 md:hidden"
+          />
         </div>
         <div className="flex justify-center">
-          <div className="grid grid-cols-10 gap-0 ">
+          <div className="grid grid-cols-10 gap-0">
             {tetrisBoard.map((grid, index) => (
               <div
                 key={index}
                 className={cn(
                   "border border-gray-300 w-6 h-6 md:w-9 md:h-9",
-                  fillColor(grid.puzzleNum),
+                  GRID_COLORS[grid.puzzleNum],
+                  // here set the starting line
                   10 <= index && index <= 19 && "border-b-2 border-b-gray-800"
                 )}
               />
@@ -408,17 +370,10 @@ const App = () => {
         </div>
       </div>
       <div className="flex flex-col-reverse md:flex-col items-start mx-2">
-        <div className="md:grid grid-cols-6 hidden">
-          {displayNextPuzzle.map((grid, index) => (
-            <div
-              key={index}
-              className={cn(
-                "border border-gray-300 w-5 h-5 md:w-9 md:h-9",
-                fillColor(grid)
-              )}
-            />
-          ))}
-        </div>
+        <NextPuzzleDisplay
+          storePuzzle={storePuzzle}
+          className="md:grid grid-cols-6 hidden"
+        />
         <InstructionManual />
         <div className="flex flex-col items-center w-full space-y-4 my-6 border py-4">
           <ControlButton onClick={() => turnPuzzleClockwise()} controlKey="w" />
