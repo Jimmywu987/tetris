@@ -3,10 +3,13 @@ import { InstructionManual } from "components/InstructionManual";
 import { NextPuzzleDisplay } from "components/NextPuzzleDisplay";
 import { EMPTY_BOARD } from "constants/emptyBoard";
 import { GRID_COLORS } from "constants/gridColors";
+import { GameStatus } from "enums/gameStatus";
 import { useState, useEffect, useRef, KeyboardEvent } from "react";
 import { Puzzle, Grid } from "types";
+import { checkHorizontalLineIsFilled } from "utils/checkHorizontalLineIsFilled";
 import { cn } from "utils/cn";
 import { drawPuzzle } from "utils/drawPuzzle";
+import { getNewPuzzlePosition } from "utils/getNewPuzzlePosition";
 
 import { turnPuzzle } from "utils/turnPuzzle";
 
@@ -18,175 +21,160 @@ const App = () => {
     puzzleNum: 0,
   });
   const [storePuzzle, setStorePuzzle] = useState<Puzzle[]>([]);
-  const [score, setScore] = useState<number>(0);
+
   const [toClearInterval, setToClearInterval] = useState<NodeJS.Timer | null>(
     null
   );
   const [touchedGround, setTouchGround] = useState<boolean>(false);
-  const [gameStarted, setGameStarted] = useState<boolean>(false);
-  const [lost, setLost] = useState<boolean>(false);
-  const [pause, setPause] = useState<boolean>(false);
+
+  const [status, setStatus] = useState<string>(GameStatus.BEFORE_START);
+
+  const [score, setScore] = useState<number>(0);
   const [step, setStep] = useState<number>(0);
 
-  const checkIfPuzzleIsFlat = (puzzle: number[]): number[] => {
-    const largestNumberSet: number[] = [];
+  const cleanUpBeforeNewPaint = () => {
+    setTetrisBoard((board: Grid[]) =>
+      board.map((each) =>
+        !each.isFixed ? { puzzleNum: 0, isFixed: false } : each
+      )
+    );
+  };
 
-    const remainCheck = puzzle.map((position) => position + 10);
-    for (let i = 0; i < remainCheck.length; i++) {
-      if (!puzzle.includes(remainCheck[i])) {
-        largestNumberSet.push(puzzle[i]);
-      }
-    }
-    return largestNumberSet;
-  };
-  const boardChecking = (arr: Grid[]): boolean => {
-    return arr.every((e) => e.puzzleNum !== 0);
-  };
-  const cleaningBeforeNewPaint = () => {
-    setTetrisBoard((board: Grid[]) => {
-      return board.map((each) => {
-        if (!each.isFixed) {
-          return { puzzleNum: 0, isFixed: false };
-        }
-        return each;
-      });
-    });
-  };
   useEffect(() => {
-    if (gameStarted && touchedGround) {
-      if (step !== 0) {
-        const needRemoveIndex: number[] = [];
-        let score = 0;
-        for (let i = 0; i < tetrisBoard.length; i += 10) {
-          if (boardChecking(tetrisBoard.slice(i, i + 10))) {
-            needRemoveIndex.push(i);
-            score += 10;
-            for (let x = 1; x < 10; x++) {
-              needRemoveIndex.push(i + x);
-            }
+    if (status === GameStatus.STARTED && touchedGround && step !== 0) {
+      const needEmptyingGridPosition: number[] = [];
+      let score = 0;
+      for (let i = 0; i < tetrisBoard.length; i += 10) {
+        // check which line is all filled horizontally
+        if (checkHorizontalLineIsFilled(tetrisBoard.slice(i, i + 10))) {
+          needEmptyingGridPosition.push(i);
+          score += 10;
+          for (let x = 1; x < 10; x++) {
+            needEmptyingGridPosition.push(i + x);
           }
         }
-
-        if (needRemoveIndex.length !== 0) {
-          const remainedBoard = tetrisBoard.filter(
-            (_, index) => !needRemoveIndex.includes(index)
-          );
-          const boardGridLeft = remainedBoard.length;
-
-          remainedBoard.unshift(
-            ...new Array(200 - boardGridLeft).fill({
-              puzzleNum: 0,
-              isFixed: false,
-            })
-          );
-          setScore((e) => (e += score));
-          setTetrisBoard(
-            remainedBoard.map((each: Grid) => {
-              if (each.puzzleNum !== 0) {
-                return {
-                  puzzleNum: each.puzzleNum,
-                  isFixed: true,
-                };
-              }
-              return each;
-            })
-          );
-        } else {
-          setTetrisBoard((board: Grid[]) => {
-            return board.map((each: Grid) => {
-              if (each.puzzleNum !== 0) {
-                return {
-                  puzzleNum: each.puzzleNum,
-                  isFixed: true,
-                };
-              }
-              return each;
-            });
-          });
-        }
-        setCurrentPuzzle({ shape: [], puzzleNum: 0 });
-        setTouchGround(false);
       }
+
+      if (needEmptyingGridPosition.length !== 0) {
+        // the filled line is removed
+        const remainedBoard = tetrisBoard.filter(
+          (_, index) => !needEmptyingGridPosition.includes(index)
+        );
+        const boardGridLeft = remainedBoard.length;
+
+        // add new line on top
+        remainedBoard.unshift(
+          ...new Array(200 - boardGridLeft).fill({
+            puzzleNum: 0,
+            isFixed: false,
+          })
+        );
+        setScore((prevScore) => (prevScore += score));
+        setTetrisBoard(
+          remainedBoard.map((each: Grid) =>
+            each.puzzleNum !== 0
+              ? {
+                  puzzleNum: each.puzzleNum,
+                  isFixed: true,
+                }
+              : each
+          )
+        );
+      } else {
+        setTetrisBoard((board: Grid[]) =>
+          board.map((each: Grid) =>
+            each.puzzleNum !== 0
+              ? {
+                  puzzleNum: each.puzzleNum,
+                  isFixed: true,
+                }
+              : each
+          )
+        );
+      }
+      setCurrentPuzzle({ shape: [], puzzleNum: 0 });
+      setTouchGround(false);
     }
   }, [touchedGround]);
 
   useEffect(() => {
-    if (gameStarted) {
-      if (step !== 0) {
-        setTetrisBoard((board: Grid[]) => {
-          return board.map((each, index: number) => {
-            if (currentPuzzle.shape.includes(index)) {
-              return { puzzleNum: currentPuzzle.puzzleNum, isFixed: false };
-            } else if (!each.isFixed) {
-              return { puzzleNum: 0, isFixed: false };
-            }
-            return each;
-          });
-        });
-      }
+    if (status === GameStatus.STARTED && step !== 0) {
+      setTetrisBoard((board: Grid[]) =>
+        board.map((each, index: number) =>
+          currentPuzzle.shape.includes(index)
+            ? { puzzleNum: currentPuzzle.puzzleNum, isFixed: false }
+            : !each.isFixed
+            ? { puzzleNum: 0, isFixed: false }
+            : each
+        )
+      );
     }
   }, [currentPuzzle]);
 
   const puzzleDownward = () => {
-    if (gameStarted && !pause && !lost) {
-      let canProcess = true;
-      const newPosition = currentPuzzle.shape.map((e) => e + 10);
-      if (checkIfPuzzleIsFlat(newPosition).some((e) => e > 199)) {
+    if (status === GameStatus.STARTED) {
+      const newPosition = currentPuzzle.shape.map((position) => position + 10);
+
+      // check if the puzzle is at the bottom
+      if (
+        getNewPuzzlePosition(newPosition).some((position) => position > 199)
+      ) {
         setTouchGround(true);
-        canProcess = false;
+        return;
       }
       if (
         tetrisBoard
           .filter((_, index) =>
-            checkIfPuzzleIsFlat(newPosition).includes(index)
+            getNewPuzzlePosition(newPosition).includes(index)
           )
           .some((grid: Grid) => grid.isFixed)
       ) {
         if (newPosition.some((e) => 20 <= e && e <= 29)) {
-          setLost(true);
+          setStatus(GameStatus.LOST);
         } else {
           setTouchGround(true);
         }
-        canProcess = false;
+        return;
       }
-      if (canProcess) {
-        cleaningBeforeNewPaint();
-        setCurrentPuzzle((original: Puzzle) => {
-          return {
-            ...original,
-            shape: newPosition,
-          };
-        });
-      }
+
+      cleanUpBeforeNewPaint();
+      setCurrentPuzzle((original: Puzzle) => {
+        return {
+          puzzleNum: original.puzzleNum,
+          shape: newPosition,
+        };
+      });
+      setTouchGround(false);
     }
   };
   const pushPuzzleToBottom = () => {
-    if (gameStarted && !pause && !lost) {
+    if (status === GameStatus.STARTED) {
       for (let i = 10; i <= 200; i += 10) {
-        const newPosition = currentPuzzle.shape.map((e) => e + i);
+        const newPosition = currentPuzzle.shape.map((position) => position + i);
         if (
-          checkIfPuzzleIsFlat(newPosition).some((e) => e > 199) ||
+          getNewPuzzlePosition(newPosition).some((e) => e > 199) ||
           tetrisBoard
             .filter((_, index) =>
-              checkIfPuzzleIsFlat(newPosition).includes(index)
+              getNewPuzzlePosition(newPosition).includes(index)
             )
             .some((grid: Grid) => grid.isFixed)
         ) {
-          cleaningBeforeNewPaint();
+          cleanUpBeforeNewPaint();
           setCurrentPuzzle((original: Puzzle) => {
             return {
               ...original,
               shape: newPosition.map((e) => e - 10),
             };
           });
-          setStep((e) => e + 1);
+          setStep((prevStep) => prevStep + 1);
           break;
         }
       }
     }
   };
+
   useEffect(() => {
-    if (step > 0 && !pause && !lost) {
+    if (step > 0 && status === GameStatus.STARTED) {
       if (currentPuzzle.puzzleNum === 0) {
         setCurrentPuzzle(
           storePuzzle.length === 0 ? drawPuzzle() : storePuzzle[0]
@@ -203,10 +191,10 @@ const App = () => {
   }, [step]);
 
   const startGame = (gameRestart = false) => {
-    if (!gameStarted || gameRestart) {
-      setGameStarted(true);
+    if (status !== GameStatus.STARTED || gameRestart) {
+      setStatus(GameStatus.STARTED);
       const time = setInterval(() => {
-        if (!pause) {
+        if (status !== GameStatus.PAUSED) {
           setStep((preStep) => preStep + 1);
         }
       }, 1000);
@@ -214,16 +202,15 @@ const App = () => {
     }
   };
   const pauseGame = () => {
-    setPause((isPause) => !isPause);
+    setStatus(GameStatus.PAUSED);
   };
   const restartGame = () => {
     setTetrisBoard(EMPTY_BOARD);
     if (toClearInterval) {
       clearInterval(toClearInterval);
     }
-    setPause(false);
+    setStatus(GameStatus.STARTED);
     setStep(0);
-    setLost(false);
     setScore(0);
     setStorePuzzle([]);
     setCurrentPuzzle({ shape: [], puzzleNum: 0 });
@@ -242,15 +229,15 @@ const App = () => {
       .every((e: boolean) => !e);
   };
   const moveHorizontally = (move: number) => {
-    if (gameStarted && !pause && !lost) {
-      const newFill = currentPuzzle.shape.map((e) => e + move);
+    if (status === GameStatus.STARTED) {
+      const newFill = currentPuzzle.shape.map((position) => position + move);
       const isStraightLine = currentPuzzle.puzzleNum === 1;
       let canProcess = true;
       if (isStraightLine) {
         const linePositions = currentPuzzle.shape.map((e) => e % 10);
         if (
           linePositions.every((e) => e === linePositions[0]) &&
-          linePositions[0] + move === 10
+          (linePositions[0] + move === 10 || linePositions[0] + move === -1)
         ) {
           canProcess = false;
         }
@@ -264,7 +251,7 @@ const App = () => {
         canProcess = false;
       }
       if (checkIfOutOfGrid(newFill) && canProcess) {
-        cleaningBeforeNewPaint();
+        cleanUpBeforeNewPaint();
         setCurrentPuzzle((original: Puzzle) => {
           return {
             ...original,
@@ -275,13 +262,13 @@ const App = () => {
     }
   };
   const turnPuzzleClockwise = () => {
-    if (gameStarted && !pause && !lost) {
+    if (status === GameStatus.STARTED) {
       const updatePuzzle = turnPuzzle(currentPuzzle);
       if (
         checkIfOutOfGrid(updatePuzzle) &&
         checkIfGridIsOccupiedWhenTurn(updatePuzzle)
       ) {
-        cleaningBeforeNewPaint();
+        cleanUpBeforeNewPaint();
         setCurrentPuzzle((previousPuzzle) => {
           return { ...previousPuzzle, shape: updatePuzzle };
         });
@@ -323,7 +310,7 @@ const App = () => {
         <div className="flex flex-col space-y-2 md:mr-3">
           <button
             className={`border px-4 py-1 rounded ${
-              gameStarted && "bg-gray-500 text-white"
+              status === GameStatus.STARTED && "bg-gray-500 text-white"
             }`}
             ref={ref}
             onClick={() => startGame()}
@@ -332,7 +319,7 @@ const App = () => {
           </button>
           <button
             className={`border px-4 py-1 rounded ${
-              pause && "bg-gray-500 text-white"
+              status === GameStatus.PAUSED && "bg-gray-500 text-white"
             }`}
             onClick={() => pauseGame()}
           >
@@ -345,7 +332,7 @@ const App = () => {
             Restart
           </button>
           <p className="border px-3 py-1 flex justify-center">{score}</p>
-          {lost && (
+          {status === GameStatus.LOST && (
             <p className="text-2xl text-center font-bold text-red-700">Lost</p>
           )}
           <NextPuzzleDisplay
