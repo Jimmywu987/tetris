@@ -3,7 +3,7 @@ import { InstructionManual } from "components/InstructionManual";
 import { NextPuzzleDisplay } from "components/NextPuzzleDisplay";
 import { EMPTY_BOARD } from "constants/emptyBoard";
 import { GRID_COLORS } from "constants/gridColors";
-import { GameStatus } from "enums/gameStatus";
+import { GameStatusEnums } from "enums/GameStatusEnums";
 import { useState, useEffect, useRef, KeyboardEvent } from "react";
 import { Puzzle, Grid } from "types";
 import { checkHorizontalLineIsFilled } from "utils/checkHorizontalLineIsFilled";
@@ -28,7 +28,7 @@ const App = () => {
   );
   const [touchedGround, setTouchGround] = useState<boolean>(false);
 
-  const [status, setStatus] = useState<string>(GameStatus.BEFORE_START);
+  const [status, setStatus] = useState<string>(GameStatusEnums.BEFORE_START);
 
   const [score, setScore] = useState<number>(0);
   const [step, setStep] = useState<number>(0);
@@ -42,7 +42,7 @@ const App = () => {
   };
 
   useEffect(() => {
-    if (status === GameStatus.STARTED && touchedGround) {
+    if (status === GameStatusEnums.STARTED && touchedGround) {
       const needEmptyingGridPosition: number[] = [];
       let score = 0;
       for (let i = 0; i < tetrisBoard.length; i += 10) {
@@ -104,7 +104,7 @@ const App = () => {
   }, [touchedGround]);
 
   useEffect(() => {
-    if (status === GameStatus.STARTED) {
+    if (status === GameStatusEnums.STARTED) {
       setTetrisBoard((board: Grid[]) =>
         board.map((each, index: number) =>
           currentPuzzle.shape.includes(index)
@@ -118,7 +118,7 @@ const App = () => {
   }, [currentPuzzle]);
 
   const puzzleDownward = (puzzle: Puzzle) => {
-    if (status === GameStatus.STARTED) {
+    if (status === GameStatusEnums.STARTED) {
       const newPosition = puzzle.shape.map((position) => position + 10);
 
       // check if the puzzle is at the bottom
@@ -136,7 +136,7 @@ const App = () => {
           .some((grid: Grid) => grid.isFixed)
       ) {
         if (newPosition.some((e) => 20 <= e && e <= 29)) {
-          setStatus(GameStatus.LOST);
+          setStatus(GameStatusEnums.LOST);
         } else {
           setTouchGround(true);
         }
@@ -154,7 +154,7 @@ const App = () => {
     }
   };
   const pushPuzzleToBottom = (puzzle: Puzzle) => {
-    if (status === GameStatus.STARTED) {
+    if (status === GameStatusEnums.STARTED) {
       for (let i = 10; i <= 200; i += 10) {
         const newPosition = puzzle.shape.map((position) => position + i);
         if (
@@ -180,7 +180,7 @@ const App = () => {
   };
 
   useEffect(() => {
-    if (status === GameStatus.STARTED) {
+    if (status === GameStatusEnums.STARTED) {
       if (currentPuzzle.puzzleNum === 0) {
         setCurrentPuzzle(
           storePuzzle.length === 0 ? drawPuzzle() : storePuzzle[0]
@@ -197,10 +197,10 @@ const App = () => {
   }, [step]);
 
   const startGame = (gameRestart = false) => {
-    if (status !== GameStatus.STARTED || gameRestart) {
-      setStatus(GameStatus.STARTED);
+    if (status !== GameStatusEnums.STARTED || gameRestart) {
+      setStatus(GameStatusEnums.STARTED);
       const time = setInterval(() => {
-        if (status !== GameStatus.PAUSED) {
+        if (status !== GameStatusEnums.PAUSED) {
           setStep((preStep) => preStep + 1);
         }
       }, 1000);
@@ -208,14 +208,14 @@ const App = () => {
     }
   };
   const pauseGame = () => {
-    setStatus(GameStatus.PAUSED);
+    setStatus(GameStatusEnums.PAUSED);
   };
   const resetGame = () => {
     setTetrisBoard(EMPTY_BOARD);
     if (toClearInterval) {
       clearInterval(toClearInterval);
     }
-    setStatus(GameStatus.BEFORE_START);
+    setStatus(GameStatusEnums.BEFORE_START);
     setStep(0);
     setScore(0);
     setStorePuzzle([]);
@@ -229,7 +229,7 @@ const App = () => {
       .every((puzzle: boolean) => !puzzle);
 
   const moveHorizontally = (move: number, puzzle: Puzzle) => {
-    if (status === GameStatus.STARTED) {
+    if (status === GameStatusEnums.STARTED) {
       const newFill = puzzle.shape.map((position) => position + move);
       const isStraightLine = puzzle.puzzleNum === 1;
 
@@ -263,7 +263,7 @@ const App = () => {
     }
   };
   const turnPuzzleClockwise = () => {
-    if (status === GameStatus.STARTED) {
+    if (status === GameStatusEnums.STARTED) {
       const updatePuzzle = turnPuzzle(currentPuzzle);
       if (
         checkIsAtEdge(updatePuzzle) &&
@@ -311,7 +311,7 @@ const App = () => {
         <div className="flex flex-col space-y-2 md:mr-3">
           <button
             className={`border px-4 py-1 rounded ${
-              status === GameStatus.STARTED && "bg-gray-500 text-white"
+              status === GameStatusEnums.STARTED && "bg-gray-500 text-white"
             }`}
             ref={ref}
             onClick={() => startGame()}
@@ -320,7 +320,7 @@ const App = () => {
           </button>
           <button
             className={`border px-4 py-1 rounded ${
-              status === GameStatus.PAUSED && "bg-gray-500 text-white"
+              status === GameStatusEnums.PAUSED && "bg-gray-500 text-white"
             }`}
             onClick={() => pauseGame()}
           >
@@ -333,7 +333,7 @@ const App = () => {
             Reset
           </button>
           <p className="border px-3 py-1 flex justify-center">{score}</p>
-          {status === GameStatus.LOST && (
+          {status === GameStatusEnums.LOST && (
             <p className="text-2xl text-center font-bold text-red-700">Lost</p>
           )}
           <NextPuzzleDisplay
